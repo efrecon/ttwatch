@@ -353,3 +353,52 @@ information only.
 
 [TT Watch Synchronizer - UI for ttwatch to manage your watch and tracks and optionaly upload to strava](https://github.com/Dica-Developer/ttws)
 
+
+Docker
+======
+
+It is possible to build a Docker image for `ttwatch` using the provided
+[Dockerfile](./Dockerfile). The image is based on the latest Ubuntu LTS and
+automates installation and download of dependencies, as well as compilation. It
+is tuned to minimise the number of layers and to minimise the size of the final
+image. In order to build, from the root directory of the project, run the
+following command. If necessary, there are two build-time variables that can be
+set in order to adapt the versions used for the protobuf-oriented libraries.
+These are `PROTOBUF_VERSION` and `PROTOBUF_C_VERSION` and they default to
+`3.9.1` and `1.3.2`, respectively.
+
+```shell
+docker build -t ttwatch .
+```
+
+By default, the image exports a volume at the default location for the storage
+of activities. The default behaviour is to run `ttwatchd` and you will need to
+arrange for the daemon to access the local clock (to synchronise local time to
+your clock) and the USB device, e.g.:
+
+```shell
+docker run -it --rm --privileged \
+    -v /dev/bus/usb:/dev/bus/usb:ro \
+    -v /etc/localtime:/etc/localtime:ro \
+    -v $HOME/ttwatch:/root/ttwatch \
+    ttwatch
+```
+
+While the entrypoint defaults to running the daemon, it is also possible to run
+the other utilities that are part of the project. In that case, you should be
+able to lower the attack surface of the container and give it less access to the
+remaining of the system. This will work as long as you start the container after
+you have connected the watch (see [here][USB_Linux]). For example, the following
+command would show all settings on your watch.
+
+```shell
+docker run -it --rm \
+    --device /dev/bus/usb \
+    --cap-add SYS_PTRACE \
+    -v /etc/localtime:/etc/localtime:ro \
+    -v $HOME/ttwatch:/root/ttwatch \
+    ttwatch \
+    ttwatch --all-settings
+```
+
+  [USB_Linux]: http://marc.merlins.org/perso/linux/post_2018-12-20_Accessing-USB-Devices-In-Docker-_ttyUSB0_-dev-bus-usb-_-for-fastboot_-adb_-without-using-privileged.html
